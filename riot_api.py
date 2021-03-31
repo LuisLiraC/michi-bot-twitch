@@ -32,7 +32,7 @@ class RiotAPI():
                 champion_id = champion[1]['key']
                 break
 
-        if not new_champion_name:
+        if new_champion_name is None:
             raise ChampionException
 
         summoner_id = os.environ.get('SUMMONER_ID')
