@@ -28,6 +28,7 @@ class Bot(commands.Bot):
         self.user_id = os.environ.get('TWITCH_USER_ID')
         self.ignore_users = [self.nick, 'nightbot']
         self.only_owner_commands = ['dtts', 'atts']
+        self.only_mod_commands = ['vol', 'next', 'stop']
         self.owner_nick = os.environ.get('CHANNEL').replace('#', '').lower()
 
         self.riot_api = RiotAPI()
@@ -105,8 +106,15 @@ class Bot(commands.Bot):
     @commands.command(name='c')
     async def cmd(self, message):
         try:
-            keys = list(map(lambda c: f'!{c}' if c not in self.only_owner_commands else '', [
+            keys = list(map(lambda c: f'!{c}' if c not in self.only_owner_commands and c not in self.only_mod_commands else '', [
                         *self.commands.keys()]))
+
+            if message.author.is_mod:
+                print(message.author.name)
+                print(message.author.is_mod)
+                for c in self.only_mod_commands:
+                    keys.append(f'{c}')
+
             response = f'{message.author.name} Puedes usar estos comandos:\n' + \
                 '\n'.join(keys)
             await message.channel.send(response)
@@ -144,12 +152,12 @@ class Bot(commands.Bot):
     @commands.command(name='atts')
     async def activate_tts(self, message):
         if message.author.name.lower() == self.owner_nick:
-            self.tts_engine.is_active = True
+            self.tts_engine.activate()
 
     @commands.command(name='dtts')
     async def deactivate_tts(self, message):
         if message.author.name.lower() == self.owner_nick:
-            self.tts_engine.is_active = False
+            self.tts_engine.deactivate()
 
     @commands.command(name='bonk')
     async def bonk(self, message):
@@ -168,16 +176,37 @@ class Bot(commands.Bot):
             print(ex)
 
     @commands.command(name='next')
-    async def next_song(self, ctx):
+    async def next_song(self, message):
         try:
-            await self.music_player.next()
+            if message.author.is_mod:
+                await self.music_player.next()
         except Exception as ex:
             print(ex)
 
     @commands.command(name='vol')
-    async def volume(self, ctx):
+    async def volume(self, message):
         try:
-            volume = ctx.content.replace('!vol ', '')
-            self.music_player.set_volume(volume)
+            if message.author.is_mod:
+                volume = message.content.replace('!vol ', '').strip()
+                self.music_player.set_volume(volume)
+        except Exception as ex:
+            print(ex)
+
+    @commands.command(name='currentsong')
+    async def currentsong(self, message):
+        try:
+            reference = self.music_player.get_song_reference()
+            song_name = self.music_dl.get_song_name(reference)
+
+            if song_name is not None:
+                await message.channel.send(f'{message.author.name}. La canción es: {song_name}')
+        except Exception as ex:
+            print(ex)
+
+    @commands.command(name='stop')
+    async def stop(self, message):
+        try:
+            if message.author.is_mod:
+                self.music_player.stop()
         except Exception as ex:
             print(ex)

@@ -51,3 +51,12 @@ class MusicDL:
 
     def relocate_song(self, filename):
         shutil.move(f'./{filename}', f'{self.download_path}{filename}')
+
+    def get_song_name(self, reference):
+        with open(self.songs_csv_path, 'r', encoding='utf-8') as songs:
+            data = csv.reader(songs)
+            for row in data:
+                if row[1] == reference:
+                    return row[0]
+
+            return None

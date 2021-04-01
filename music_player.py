@@ -1,6 +1,7 @@
 import vlc
 import time
 import asyncio
+import re
 
 
 class MusicPlayer:
@@ -11,9 +12,13 @@ class MusicPlayer:
         self._player = self._vlc_instance.media_player_new()
         self.max_volume = max_volume
         self.set_volume()
+        self._current_song_reference = None
 
     async def play(self, media):
         self._player.set_media(media)
+        match = re.search('([0-9A-Za-z]{32})', media.get_mrl())
+        self._current_song_reference = match.group(1)
+
         self._player.play()
         await self.check_is_playing()
 
@@ -23,9 +28,6 @@ class MusicPlayer:
 
             if self._player.is_playing() == 0:
                 await self.next()
-
-    def pause(self):
-        pass
 
     def stop(self):
         self._player.stop()
@@ -53,3 +55,8 @@ class MusicPlayer:
             num = int(volume)
             if num <= self.max_volume and num > 0:
                 self._player.audio_set_volume(num)
+            elif num > self.max_volume:
+                self._player.audio_set_volume(self.max_volume)
+
+    def get_song_reference(self):
+        return self._current_song_reference

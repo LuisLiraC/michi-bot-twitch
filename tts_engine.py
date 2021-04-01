@@ -36,3 +36,9 @@ class TTSEngine:
             return True
         except Exception as ex:
             print(ex)
+
+    def activate(self):
+        self.is_active = True
+
+    def deactivate(self):
+        self.is_active = False
