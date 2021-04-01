@@ -1,23 +1,18 @@
 import os
-from twitchio.ext import commands
-from twitchio.ext.commands.errors import CommandNotFound
-
 from datetime import datetime, timezone
 
-import uuid
-import csv
-import shutil
-from pytube import YouTube
-from music_player import MusicPlayer
+from twitchio.ext import commands
+from twitchio.ext.commands.errors import CommandNotFound
+from playsound import playsound
 
 from cats_api import CatsAPI
 from riot_api import RiotAPI
 from tts_engine import TTSEngine
+from music_player import MusicPlayer
+from music_dl import MusicDL
 
 from bot_utils import send_exception
 from custom_exceptions import ChampionException, RandomCatException, NotPlayedException
-
-from playsound import playsound
 
 
 class Bot(commands.Bot):
@@ -39,9 +34,10 @@ class Bot(commands.Bot):
         self.cats_api = CatsAPI()
         self.tts_engine = TTSEngine()
         self.music_player = MusicPlayer(os.environ.get('DOWNLOADS_PATH'))
+        self.music_dl = MusicDL(download_path=os.environ.get('DOWNLOADS_PATH'))
 
     async def event_ready(self):
-        print(f'Miaw! {self.nick}')
+        print(f'{self.nick} is ready')
 
     async def event_join(self, user):
         pass
@@ -163,41 +159,25 @@ class Bot(commands.Bot):
     async def song_request(self, message):
         try:
             url = message.content.replace('!sr', '').strip()
-            yt = YouTube(url)
-
-            MAX_DURATION = 600
-            if yt.length > MAX_DURATION:
-                return
-
-            song_reference = None
-
-            with open('./songs.csv', 'r', encoding='utf-8') as songs:
-                data = csv.reader(songs)
-                for row in data:
-                    if row[0] == yt.title:
-                        song_reference = f'{row[1]}.webm'
-
-            if song_reference is None:
-                old_title = yt.title
-                new_title = str(uuid.uuid4()).replace('-', '')
-                yt.title = new_title
-
-                with open('./songs.csv', 'a', encoding='utf-8') as songs:
-                    songs.write(f'{old_title},{new_title}\n')
-
-                streams = yt.streams.filter(only_audio=True)
-                stream = streams[-1]
-                stream.download()
-
-                filename = f'{new_title}.webm'
-                song_reference = filename
-                shutil.move(f'./{filename}', f'{self.music_player.songs_path}{filename}')
-
+            song_reference = self.music_dl.download(url)
             await self.music_player.add_to_playlist(song_reference)
-
         except Exception as ex:
+            # I needed to do this because only this "fix" a weird bug
+            # When the player stop and then play music again the volume change to -1 and it ignore every validation that I do
+            self.music_player = MusicPlayer(os.environ.get('DOWNLOADS_PATH'))
             print(ex)
 
     @commands.command(name='next')
     async def next_song(self, ctx):
-        await self.music_player.next()
+        try:
+            await self.music_player.next()
+        except Exception as ex:
+            print(ex)
+
+    @commands.command(name='vol')
+    async def volume(self, ctx):
+        try:
+            volume = ctx.content.replace('!vol ', '')
+            self.music_player.set_volume(volume)
+        except Exception as ex:
+            print(ex)
