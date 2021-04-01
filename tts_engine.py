@@ -1,14 +1,38 @@
 import pyttsx3
+from bot_utils import find_url
 
 class TTSEngine:
     def __init__(self):
         self.tts_engine = pyttsx3.init()
         voices = self.tts_engine.getProperty('voices')
         self.tts_engine.setProperty('voice', voices[3].id)
+        self.is_active = True
+        self.blacklist_words = set(['gay', 'homosexual', 'nazi', 'porno', 'feminazi'])
 
     def read(self, message):
         try:
-            self.tts_engine.say(message)
-            self.tts_engine.runAndWait()
+            if not self.is_active:
+                return
+
+            is_valid = self.validate_message(message)
+
+            if is_valid:
+                self.tts_engine.say(message)
+                self.tts_engine.runAndWait()
+        except Exception as ex:
+            print(ex)
+
+    def validate_message(self, message):
+        try:
+            words = set(message.split(' '))
+            words_count = len(words.intersection(self.blacklist_words))
+            if words_count > 0:
+                return False
+
+            has_url = find_url(message)
+            if has_url:
+                return False
+            
+            return True
         except Exception as ex:
             print(ex)

@@ -22,11 +22,14 @@ class Bot(commands.Bot):
             initial_channels=[os.environ.get('CHANNEL')],
             client_secret=os.environ.get('CLIENT_SECRET'))
 
-        self.user_id = os.environ.get('USER_ID')
+        self.user_id = os.environ.get('TWITCH_USER_ID')
+        self.ignore_users = [self.nick, 'nightbot']
+        self.only_owner_commands = ['dtts', 'atts']
+        self.channel_nick = os.environ.get('CHANNEL').replace('#', '').lower()
+
         self.riot_api = RiotAPI()
         self.cats_api = CatsAPI()
         self.tts_engine = TTSEngine()
-        self.ignore_users = [self.nick, 'nightbot', 'luislirac']
 
     async def event_ready(self):
         print(f'Miaw! {self.nick}')
@@ -105,8 +108,10 @@ class Bot(commands.Bot):
     @commands.command(name='c')
     async def cmd(self, message):
         try:
-            keys = list(map(lambda c: f'!{c}', [*self.commands.keys()]))
-            response = 'Puedes usar estos comandos:\n' + '\n'.join(keys)
+            keys = list(map(lambda c: f'!{c}' if c not in self.only_owner_commands else '', [
+                        *self.commands.keys()]))
+            response = f'{message.author.name} Puedes usar estos comandos:\n' + \
+                '\n'.join(keys)
             await message.channel.send(response)
         except Exception as ex:
             print(ex)
@@ -114,7 +119,6 @@ class Bot(commands.Bot):
     @commands.command(name='followage')
     async def follow_age(self, message):
         try:
-
             follower_name = message.author.name.lower()
             followers_list = await self.get_followers(self.user_id)
             follow_date = None
@@ -139,3 +143,13 @@ class Bot(commands.Bot):
                 await message.channel.send(f'{follower_name}, tienes {following_days} días siguiéndome. Muchas gracias 🥳')
         except Exception as ex:
             print(ex)
+
+    @commands.command(name='atts')
+    async def activate_tts(self, message):
+        if message.author.name.lower() == self.channel_nick:
+            self.tts_engine.is_active = True
+
+    @commands.command(name='dtts')
+    async def deactivate_tts(self, message):
+        if message.author.name.lower() == self.channel_nick:
+            self.tts_engine.is_active = False
