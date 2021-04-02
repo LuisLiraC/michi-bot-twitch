@@ -166,8 +166,8 @@ class Bot(commands.Bot):
     @commands.command(name='sr')
     async def song_request(self, message):
         try:
-            url = message.content.replace('!sr', '').strip()
-            song_reference = self.music_dl.download(url)
+            user_input = message.content.replace('!sr', '').strip()
+            song_reference = self.music_dl.download(user_input)
             await self.music_player.add_to_playlist(song_reference)
         except Exception as ex:
             # I needed to do this because only this "fix" a weird bug

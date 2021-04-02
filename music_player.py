@@ -50,8 +50,6 @@ class MusicPlayer:
 
         self._playlist.append(media)
 
-        print(self._playlist)
-
         if self._player.is_playing() == 0:
             await self.play(media)
 

@@ -1,8 +1,10 @@
 import csv
 import shutil
 import uuid
+import os
 
 from pytube import YouTube
+from bot_utils import make_request
 
 
 class MusicDL:
@@ -10,8 +12,22 @@ class MusicDL:
         self.max_duration = max_duration
         self.download_path = download_path
         self.songs_csv_path = './songs.csv'
+        self.youtube_api_key = os.environ.get('YOUTUBE_API_KEY')
 
-    def download(self, url):
+    def download(self, user_input):
+        url = None
+        if 'https://www.youtube.com/watch?v=' in user_input:
+            url = user_input
+        else:
+            yt_id = self.get_yt_id(user_input)
+            if yt_id is None:
+                return
+
+            url = f'https://www.youtube.com/watch?v={yt_id}'
+
+        if url is None:
+            return
+
         yt = YouTube(url)
 
         if yt.length > self.max_duration:
@@ -60,3 +76,14 @@ class MusicDL:
                     return row[0]
 
             return None
+    
+    def get_yt_id(self, user_input):
+        request_url = f'https://www.googleapis.com/youtube/v3/search?maxResults=1&q={user_input}&type=video&key={self.youtube_api_key}'
+        response = make_request(request_url)
+        items = response['items']
+
+        if len(items) < 1:
+            return None
+
+        yt_id = items[0]['id']['videoId']
+        return yt_id
