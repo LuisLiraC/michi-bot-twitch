@@ -2,6 +2,7 @@ import vlc
 import time
 import asyncio
 import re
+from music_dl import MusicDL
 
 
 class MusicPlayer:
@@ -31,6 +32,7 @@ class MusicPlayer:
 
     def stop(self):
         self._player.stop()
+        self._player.release()
         self._playlist = []
         raise Exception('[Stop Music Player]')
 
@@ -41,14 +43,16 @@ class MusicPlayer:
         else:
             self.stop()
 
-    async def add_to_playlist(self, song):
+    async def add_to_playlist(self, song, message, song_name):
         media = self._vlc_instance.media_new(f'{self.songs_path}{song}')
 
         for media_source in self._playlist:
             if song in media_source.get_mrl():
+                await message.channel.send(f'{message.author.name}. La canción ya se encuentra en la playlist.')
                 return
 
         self._playlist.append(media)
+        await message.channel.send(f'{message.author.name}. Se agregó {song_name} a la playlist.')
 
         if self._player.is_playing() == 0:
             await self.play(media)

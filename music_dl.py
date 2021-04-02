@@ -6,6 +6,8 @@ import os
 from pytube import YouTube
 from bot_utils import make_request
 
+from custom_exceptions import MaxDurationException
+
 
 class MusicDL:
     def __init__(self, max_duration=600, download_path='./'):
@@ -31,7 +33,7 @@ class MusicDL:
         yt = YouTube(url)
 
         if yt.length > self.max_duration:
-            return
+            raise MaxDurationException
         
         title = yt.title.replace(',', '')
         song_reference = self.get_song_reference(title)
@@ -72,7 +74,7 @@ class MusicDL:
         with open(self.songs_csv_path, 'r', encoding='utf-8') as songs:
             data = csv.reader(songs)
             for row in data:
-                if row[1] == reference:
+                if row[1] == reference.replace('.webm', ''):
                     return row[0]
 
             return None

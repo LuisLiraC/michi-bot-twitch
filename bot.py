@@ -12,7 +12,7 @@ from music_player import MusicPlayer
 from music_dl import MusicDL
 
 from bot_utils import send_exception
-from custom_exceptions import ChampionException, RandomCatException, NotPlayedException
+from custom_exceptions import ChampionException, RandomCatException, NotPlayedException, MaxDurationException, NotResultsException
 
 
 class Bot(commands.Bot):
@@ -168,10 +168,18 @@ class Bot(commands.Bot):
         try:
             user_input = message.content.replace('!sr', '').strip()
             song_reference = self.music_dl.download(user_input)
-            await self.music_player.add_to_playlist(song_reference)
+            if song_reference is None:
+                raise NotResultsException
+            song_name = self.music_dl.get_song_name(song_reference)
+            await self.music_player.add_to_playlist(song_reference, message, song_name)
+        except MaxDurationException as ex:
+            await send_exception(message, ex)
+        except NotResultsException as ex:
+            await send_exception(message, ex)
         except Exception as ex:
             # I needed to do this because only this "fix" a weird bug
-            # When the player stop and then play music again the volume change to -1 and it ignore every validation that I do
+            # When the player stop and then play music again the volume change to -1 and it ignore every
+            # validation that I do to change it again to the initial volume
             self.music_player = MusicPlayer(os.environ.get('DOWNLOADS_PATH'))
             print(ex)
 
