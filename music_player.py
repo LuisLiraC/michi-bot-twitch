@@ -43,7 +43,14 @@ class MusicPlayer:
 
     async def add_to_playlist(self, song):
         media = self._vlc_instance.media_new(f'{self.songs_path}{song}')
+
+        for media_source in self._playlist:
+            if song in media_source.get_mrl():
+                return
+
         self._playlist.append(media)
+
+        print(self._playlist)
 
         if self._player.is_playing() == 0:
             await self.play(media)
