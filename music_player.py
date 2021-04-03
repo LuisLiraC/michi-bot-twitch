@@ -2,7 +2,6 @@ import vlc
 import time
 import asyncio
 import re
-from music_dl import MusicDL
 
 
 class MusicPlayer:

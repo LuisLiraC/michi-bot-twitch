@@ -7,7 +7,7 @@ def make_request(url, headers={}):
     return json
 
 def find_url(message):
-    regex = re.compile(r'(http)?s?[:\/\/]?[www]?.*\..*', re.IGNORECASE)
+    regex = re.compile(r'(http)?s?[:\/\/]?[www]?.*\.[a-zA-Z]{1,4}', re.IGNORECASE)
     if re.match(regex, message) is None:
         return False
 

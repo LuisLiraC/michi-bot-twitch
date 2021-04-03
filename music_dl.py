@@ -39,6 +39,7 @@ class MusicDL:
         song_reference = self.get_song_reference(title)
 
         if song_reference is None:
+            print(f'Donwloading {title}...')
             old_title = title
             new_title = str(uuid.uuid4()).replace('-', '')
             yt.title = new_title

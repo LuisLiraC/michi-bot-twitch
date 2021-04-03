@@ -1,4 +1,6 @@
 import os
+import asyncio
+import random
 from datetime import datetime, timezone
 
 from twitchio.ext import commands
@@ -7,7 +9,6 @@ from playsound import playsound
 
 from cats_api import CatsAPI
 from riot_api import RiotAPI
-from tts_engine import TTSEngine
 from music_player import MusicPlayer
 from music_dl import MusicDL
 
@@ -16,7 +17,14 @@ from custom_exceptions import ChampionException, RandomCatException, NotPlayedEx
 
 
 class Bot(commands.Bot):
-    def __init__(self):
+    def __init__(
+        self, 
+        spam_time=600, 
+        spam_messages=[], 
+        custom_rewards=[], 
+        tts_engine=None, 
+        greeting_message=''
+        ):
         super().__init__(
             irc_token=os.environ.get('TMI_TOKEN'),
             client_id=os.environ.get('CLIENT_ID'),
@@ -26,44 +34,74 @@ class Bot(commands.Bot):
             client_secret=os.environ.get('CLIENT_SECRET'))
 
         self.user_id = os.environ.get('TWITCH_USER_ID')
-        self.ignore_users = [self.nick, 'nightbot']
+        self.ignore_users = [self.nick]
         self.only_owner_commands = ['dtts', 'atts']
         self.only_mod_commands = ['vol', 'next', 'stop']
         self.owner_nick = os.environ.get('CHANNEL').replace('#', '').lower()
+        self.spam_time = spam_time
+        self.spam_messages = spam_messages
+        self.chatters_list = []
+        self.custom_rewards = custom_rewards
+        self.greeting_message = greeting_message
 
         self.riot_api = RiotAPI()
         self.cats_api = CatsAPI()
-        self.tts_engine = TTSEngine()
+        self.tts_engine = tts_engine
         self.music_player = MusicPlayer(os.environ.get('DOWNLOADS_PATH'))
         self.music_dl = MusicDL(download_path=os.environ.get('DOWNLOADS_PATH'))
 
     async def event_ready(self):
         print(f'{self.nick} is ready')
-
-    async def event_join(self, user):
-        pass
+        if len(self.spam_messages) > 0:
+            await self.spam()
 
     async def event_command_error(self, message, ex):
         if ex.__class__ is CommandNotFound:
             await send_exception(message, 'No se reconoce el comando. Usa !c para ver todos los comandos.')
             return
         await send_exception(message, ex)
+    
+    async def event_raw_usernotice(self, channel, tags):
+        print(tags)
 
     async def event_message(self, message):
         try:
             if message.author.name.lower() in self.ignore_users:
                 return
 
-            if message.content[0] in self.prefixes:
-                await self.handle_commands(message)
-                return
+            if message.author.name.lower() not in self.chatters_list:
+                await message.channel.send(self.greeting_message.format(message.author.name))
+                self.chatters_list.append(message.author.name)
 
-            if message.content.lower() == 'hola':
-                await message.channel.send(f'¡Hola, {message.author.name}, muchas gracias por pasarte al stream! :D')
-
-            self.tts_engine.read(message.content)
+            await self.handle_commands(message)
+            await self.handle_custom_rewards(message)
         except Exception as ex:
             print(ex)
+
+    async def handle_custom_rewards(self, message):
+        try:
+            reward_id = message.tags.get("custom-reward-id", None)
+
+            if not reward_id:
+                return
+            if reward_id not in self.custom_rewards:
+                return
+
+            reward_action = self.custom_rewards[reward_id]
+
+            if type(reward_action) == str:
+                return
+
+            reward_action(message)
+        except Exception as ex:
+            print(ex)
+    
+    async def spam(self):
+        channel = self.get_channel(self.owner_nick)
+        while True:
+            await asyncio.sleep(self.spam_time)
+            selected_message = random.choice(self.spam_messages)
+            await channel.send(selected_message)
 
     @commands.command(name='michi')
     async def cat(self, message):
@@ -110,8 +148,6 @@ class Bot(commands.Bot):
                         *self.commands.keys()]))
 
             if message.author.is_mod:
-                print(message.author.name)
-                print(message.author.is_mod)
                 for c in self.only_mod_commands:
                     keys.append(f'{c}')
 
@@ -151,11 +187,15 @@ class Bot(commands.Bot):
 
     @commands.command(name='atts')
     async def activate_tts(self, message):
+        if self.tts_engine is None:
+            return
         if message.author.name.lower() == self.owner_nick:
             self.tts_engine.activate()
 
     @commands.command(name='dtts')
     async def deactivate_tts(self, message):
+        if self.tts_engine is None:
+            return
         if message.author.name.lower() == self.owner_nick:
             self.tts_engine.deactivate()
 
