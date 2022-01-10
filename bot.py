@@ -18,13 +18,13 @@ from custom_exceptions import ChampionException, RandomCatException, NotPlayedEx
 
 class Bot(commands.Bot):
     def __init__(
-        self, 
-        spam_time=600, 
-        spam_messages=[], 
-        custom_rewards=[], 
-        tts_engine=None, 
+        self,
+        spam_time=600,
+        spam_messages=[],
+        custom_rewards=[],
+        tts_engine=None,
         greeting_message=''
-        ):
+    ):
         super().__init__(
             irc_token=os.environ.get('TMI_TOKEN'),
             client_id=os.environ.get('CLIENT_ID'),
@@ -60,7 +60,7 @@ class Bot(commands.Bot):
             await send_exception(message, 'No se reconoce el comando. Usa !c para ver todos los comandos.')
             return
         await send_exception(message, ex)
-    
+
     async def event_raw_usernotice(self, channel, tags):
         print(tags)
 
@@ -95,7 +95,7 @@ class Bot(commands.Bot):
             reward_action(message)
         except Exception as ex:
             print(ex)
-    
+
     async def spam(self):
         channel = self.get_channel(self.owner_nick)
         while True:
@@ -207,6 +207,9 @@ class Bot(commands.Bot):
     async def song_request(self, message):
         try:
             user_input = message.content.replace('!sr', '').strip()
+            if user_input == '':
+                raise NotResultsException
+
             song_reference = self.music_dl.download(user_input)
             if song_reference is None:
                 raise NotResultsException
@@ -217,11 +220,15 @@ class Bot(commands.Bot):
         except NotResultsException as ex:
             await send_exception(message, ex)
         except Exception as ex:
+            print('----------')
+            print(ex)
+            print('----------')
             # I needed to do this because only this "fix" a weird bug
             # When the player stop and then play music again the volume change to -1 and it ignore every
             # validation that I do to change it again to the initial volume
             self.music_player = MusicPlayer(os.environ.get('DOWNLOADS_PATH'))
-            print(ex)
+            print(f'[Music Player Restarted at {datetime.now()}]')
+            print('----------')
 
     @commands.command(name='next')
     async def next_song(self, message):

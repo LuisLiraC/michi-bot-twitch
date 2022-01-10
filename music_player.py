@@ -31,7 +31,7 @@ class MusicPlayer:
 
     def stop(self):
         self._player.stop()
-        self._player.release()
+        # self._player.release()
         self._playlist = []
         raise Exception('[Stop Music Player]')
 
@@ -56,7 +56,7 @@ class MusicPlayer:
         if self._player.is_playing() == 0:
             await self.play(media)
 
-    def set_volume(self, volume=50):
+    def set_volume(self, volume=35):
         if isinstance(volume, int):
             self._player.audio_set_volume(volume)
         elif volume.isnumeric():

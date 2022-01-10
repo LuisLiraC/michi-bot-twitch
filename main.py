@@ -20,7 +20,7 @@ greeting_message = 'Hola, {}, qué gusto que participes en el stream :D'
 custom_rewards = {
     # Mensaje en audio
     'a856a173-4859-420f-baf5-fb0e8ae68237': tts_engine.read,
-    # 
+    #
 }
 
 # TODO
