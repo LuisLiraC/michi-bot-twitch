@@ -6,7 +6,7 @@ class TTSEngine:
     def __init__(self, template=''):
         self.tts_engine = pyttsx3.init()
         voices = self.tts_engine.getProperty('voices')
-        self.tts_engine.setProperty('voice', voices[3].id)
+        self.tts_engine.setProperty('voice', voices[1].id)
         self.is_active = True
         self.template = template
         self.blacklist_words = set(

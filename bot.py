@@ -14,6 +14,7 @@ from music_dl import MusicDL
 
 from bot_utils import send_exception
 from custom_exceptions import ChampionException, RandomCatException, NotPlayedException, MaxDurationException, NotResultsException
+from tts_engine import TTSEngine
 
 
 class Bot(commands.Bot):
@@ -211,6 +212,7 @@ class Bot(commands.Bot):
                 raise NotResultsException
 
             song_reference = self.music_dl.download(user_input)
+
             if song_reference is None:
                 raise NotResultsException
             song_name = self.music_dl.get_song_name(song_reference)

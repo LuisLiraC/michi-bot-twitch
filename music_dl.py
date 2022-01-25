@@ -34,20 +34,23 @@ class MusicDL:
 
         if yt.length > self.max_duration:
             raise MaxDurationException
-        
+
         title = yt.title.replace(',', '')
         song_reference = self.get_song_reference(title)
 
         if song_reference is None:
-            print(f'Donwloading {title}...')
+
             old_title = title
             new_title = str(uuid.uuid4()).replace('-', '')
             yt.title = new_title
-            self.save_song_reference(old_title, new_title)
 
             streams = yt.streams.filter(only_audio=True)
             stream = streams[-1]
+
+            print(f'Donwloading {title}...')
             stream.download()
+
+            self.save_song_reference(old_title, new_title)
 
             filename = f'{new_title}.webm'
             song_reference = filename
@@ -79,10 +82,11 @@ class MusicDL:
                     return row[0]
 
             return None
-    
+
     def get_yt_id(self, user_input):
         request_url = f'https://www.googleapis.com/youtube/v3/search?maxResults=1&q={user_input}&type=video&key={self.youtube_api_key}'
         response = make_request(request_url)
+        print(response)
         items = response['items']
 
         if len(items) < 1:
